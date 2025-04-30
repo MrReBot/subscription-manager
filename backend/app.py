@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi import FastAPI, HTTPException, UploadFile, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, validator
@@ -10,6 +10,8 @@ import json
 import asyncio
 import httpx
 import os
+from ics import Calendar, Event
+from babel.numbers import format_currency
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -162,6 +164,28 @@ async def get_subscriptions():
     ]
 
     return result
+# Get subscriptions in iCalendar format
+@app.get("/api/ics_subscriptions")
+async def get_ics_subscriptions():
+    c = Calendar()
+    subs = await get_subscriptions()
+
+    for sub in subs:
+        due_dates = compute_next_due_dates(sub,days=180)
+        if sub["showCurrencySymbol"]:
+            ammount = format_currency(sub['amount'], sub['currency'], locale='en_US')
+        else:
+            ammount = f"{sub['amount']} {sub['cur']}"
+        template_e = Event(
+                name=sub["name"],
+                description=f"Amount: {ammount}\nAutoPay: {bool(sub['autopay'])}"
+            )
+        for due_date in due_dates:
+            e = template_e.clone()
+            e.begin = due_date.strftime('%Y-%m-%d')
+            e.make_all_day()
+            c.events.add(e)
+    return Response(content=c.serialize(), media_type="text/calendar")
 
 # Add subscription
 @app.post("/api/subscriptions")
