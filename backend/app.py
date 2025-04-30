@@ -72,15 +72,15 @@ class NtfySettings(BaseModel):
     topic: str
     domain: Optional[str] = "https://ntfy.sh"
 
-# Helper function to compute next due dates
-def compute_next_due_dates(sub):
+# Helper function to compute next due dates. days can be set how far in future to compute
+def compute_next_due_dates(sub, days=30):
     now = datetime.now()
     due_date = datetime.fromisoformat(sub["due_date"])
     next_due_date = due_date
     due_dates = []
-    one_month_later = now + timedelta(days=30)
+    stop_date = now + timedelta(days=days)
 
-    while next_due_date <= one_month_later:
+    while next_due_date <= stop_date:
         if next_due_date >= now:
             due_dates.append(next_due_date)
         interval = sub["interval_value"] or 1
