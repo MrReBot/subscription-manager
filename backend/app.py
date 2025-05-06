@@ -172,6 +172,8 @@ async def get_ics_subscriptions():
 
     for sub in subs:
         due_dates = compute_next_due_dates(sub,days=180)
+        due_dates.append(datetime.fromisoformat(sub["due_date"]))
+        due_dates = list(set(due_dates))
         if sub["showCurrencySymbol"]:
             ammount = format_currency(sub['amount'], sub['currency'], locale='en_US')
         else:
